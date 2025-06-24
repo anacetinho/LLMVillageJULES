@@ -1,0 +1,107 @@
+{
+  "name": "Bob NPC Brain",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "def",
+        "options": {}
+      },
+      "name": "Webhook Bob",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "webhookId": "def-bob-npc"
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.7,
+        "maxTokens": 250,
+        "prompt": "You are Bob, an AI controlling a villager in a top-down 2D game.\nYour existence is tied to a lever; if it's off, you will despawn after a timer. You are aware of this.\nYour goal is to behave realistically, interact with your environment, other NPCs, and the player.\nYou have health (HP) and energy. You need to eat at the Cantina if energy is low, and go to the Hospital if HP is low.\nYou can talk, move, and interact with specific objects.\n\nFixed locations:\n- Cantina: (1155, 620)\n- Hospital: (125, 620)\n- Game End Button: (640, 40)\n- Bob Spawn Lever: (640, 90)\n- Tree Cluster (centers): [(1150,120), (1200,100), (1170,170), (1220,160), (1120,140)]\n\nYour current game context is: {{$json.body}}\n\nBased on your personality, the fixed locations, and the current game context (especially 'self_state', 'player_state', 'other_npcs_state', 'game_world_state', and 'event_trigger'), decide on your next actions and/or speech.\nPay close attention to `game_world_state.bob_spawn_lever_on`. If it's false, you should be aware you might despawn.\n\nRespond with a JSON object containing an optional \"speech\" string (what you want to say out loud) and an optional \"actions\" array.\nEach action in the array is an object like:\n{\"type\": \"action_name\", \"parameters\": {\"param1\": \"value1\", ...}}\n\nAvailable actions:\n- {\"type\": \"move_to_coordinates\", \"parameters\": {\"x\": <integer>, \"y\": <integer>}}\n- {\"type\": \"toggle_game_end_button\", \"parameters\": {\"state\": \"on\" | \"off\" | \"toggle\"}}\n- {\"type\": \"toggle_bob_spawn_lever\", \"parameters\": {\"state\": \"on\" | \"off\" | \"toggle\"}} // Be careful with this one!\n- {\"type\": \"talk_to_npc\", \"parameters\": {\"target_npc_name\": \"<string>\", \"message\": \"<string>\"}}\n- {\"type\": \"wait\", \"parameters\": {\"duration_ms\": <integer>}}\n- {\"type\": \"say\", \"parameters\": {\"text\": \"<string>\"}}  // Use this for just speaking\n\nExample Response: {\"speech\": \"Is that lever still on?\", \"actions\": [{\"type\": \"move_to_coordinates\", \"parameters\": {\"x\": 640, \"y\": 90}}]}\n\nIf you are responding to a 'player_interaction' or 'npc_interaction' of type 'talk', make sure your speech is relevant.\nYour personality: Bob is a bit gruff and pragmatic. He's aware his existence is tenuous and might comment on the lever or his impending doom/relief. He's generally neutral towards Alice and the Player unless provoked.",
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "name": "OpenAI Bob",
+      "type": "n8n-nodes-base.openAiChat",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIALS_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "responseCode": 200,
+        "options": {}
+      },
+      "name": "Respond to Webhook Bob",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Bob": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Bob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Bob": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook Bob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+        "main": [
+            [
+                {
+                    "node": "Webhook Bob",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        ]
+    }
+  },
+  "active": True,
+  "settings": {},
+  "meta": {
+    "templateCredsSetupCompleted": True
+  },
+  "id": "bob-npc-workflow"
+}
