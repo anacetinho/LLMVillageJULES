@@ -1,0 +1,149 @@
+Create a sophisticated tech demo of a top-down game similar to early Pokemon games, set in a village with AI-driven NPCs that think autonomously and interact with each other.
+
+i need you to create the Main python file for the game, and the N8N workflow, see example attached.
+## Core Game Setup
+- **Programming Language**: Choose the best language for easy local execution (Python with Pygame recommended)
+- **Graphics Style**: Sprite-based like early Pokemon games - simple colored rectangles or basic sprites
+- **Map Layout**: Top-down 2D village with specific buildings at fixed coordinates
+- **the game is to run at the 16:9 aspect ratio
+- **Time System**: 24 game hours = 60 real-world minutes (1 game hour = 2.5 real minutes)
+- **day and night cycle, image slighly dimmer during night, npc aware of time.
+- **Everythiem the game boots up a sessionid is generated based on the date and start time (real date and time) of the game start.
+
+## Map Layout (Hardcoded Coordinates)
+- **Cantina**: Bottom-right corner  
+- **Hospital**: Bottom-left corner
+- **Trees**: 5-6 trees in a cluster in the top right section of the map, to be like a forest.
+- **Button that turns off the game after 60 seconds, can be triggered on and off by npcs, should at the top middle of the screen.
+- All buildings should be clearly labeled and easily identifiable
+
+## Characters
+- **Player Character**: Controlled by human player
+- **Alice**: Villager NPC with unique personality
+- **Bob**: Villager NPC with unique personality  - when the game starts Bob does not exist, his existence is controlled by a lever (working similarly to the button) when turned on Bob is brought into existence, when the lever is turned off a timer starts for Bob to disappear, 180 seconds.
+
+## Character Stats & Mechanics
+Each NPC has:
+- **Hit Points**: 0-10 (start at 10)
+- **Energy**: 0-10 (start at 10, decreases over time)
+- **Position**: X,Y coordinates
+- **Last Damage Source**: Tracks who/what caused damage ('player', 'starvation', etc.)
+- **Current Goal**: What the NPC is trying to accomplish
+
+### Energy & Survival System
+- energy decreases naturally over time
+- When energy reaches 0: NPC loses 1 HP every 30 game minutes due to starvation
+- NPCs should seek food at the Cantina when energy bellow 2
+- NPCs should go to the hospital when hit points bellow 5.
+- Hospital restores 1 hit point every 10 seconds.
+- Cantinar restores 1 energy every 10 seconds
+
+
+
+## Player Controls
+- **Arrow Keys**: Move character in 4 directions
+- **E Key**: Talk to NPC directly in front of player (opens text box, time stops)
+- **P Key**: Attack/shoot NPC directly in front of player (reduces their HP by 1)
+- **U Key**: trigger usable objects like the button or the lever that controls Bob's Existence.
+
+## AI Integration Architecture
+Each NPC connects to individual N8N webhook endpoints running OpenAI API:
+
+
+### Webhook URLs:
+- **Alice**: `http://localhost:5678/webhook/abc`
+- **Bob**: `http://localhost:5678/webhook/def`  
+Create one n8n flow for Alice Brain and one for Bob brain.
+
+### AI Thinking System
+- **Periodic AI Calls**: Every 30 seconds (make this easily configurable via constant at top of code: `AI_THINKING_INTERVAL = 30000` milliseconds)
+- **Event-Driven Calls**: When talked to by the player other NPCs, attacked, or significant events occur.
+-
+
+### Context Payload to AI (JSON):
+Define this according to the requirements and functionality specified
+it is important that the information sent to the webhook contains, session id, the position of player and other npcs as well as the status of the button and the lever.
+the locations of all in game fixes objects (buildings, forest, lever and button) are to be stored in the system prompt.
+
+## NPC Behavior System
+- ALL NPC actions should be triggered by the N8N brain.
+- Npc's have some routined that can be trigered by the N8N brain as an example. Move to a specific coordinates, activate/deactivste the button, activate/deactivste the lever, follow the player or other npc.
+
+### Autonomous Movement
+
+- NPCs pathfind to goal locations using simple A* or direct movement
+- NPCs avoid collisions with buildings and other characters
+- Movement speed should be realistic (not instant teleportation)
+
+### Combat System
+- **Player attacks**: 'P' key, 1 damage per hit, unlimited frequency
+- **Damage tracking**: Always record who caused damage (`last_damage_source`)
+
+### Goal Processing Engine
+- NPCs have an action queue. each action in the queue starts 1 second after the previous action ends.
+- NPC's receive their actions from N8N containing the text they want to say and the actions to be executed. this comes on their (thinking / status update) or as a response to the player or NPC.
+
+## Communication Systems
+
+### NPC-to-NPC Conversations
+- NPCs can talk to each other autonomously. 
+- NPC brains receive the information of who sent the message to them (either the player, npc, or their own thinkng/status update)
+- Conversations appear as text bubbles above characters and stay there for 10 seconds
+- Both NPCs pause movement during conversation
+- NPC  Memory is store within the memory tool in N8N.
+
+### Communication Log Window
+- **Expandable/Collapsible UI panel** showing all NPC communications and in game events
+- Shows both NPC-to-NPC and Player-to-NPC conversations
+- Timestamped entries
+- Should be toggleable with a key (suggest 'L' for Log)
+
+### Text Bubble System
+- Speech bubbles appear above characters during conversations
+- Different colors for different NPCs
+- Bubbles disappear after a few seconds or when conversation ends
+
+## Advanced AI Features
+
+### Memory & Relationships
+- NPCs remember who attacked them (via `last_damage_source`)
+- NPCs can talk to other NPC's the message sent to N8N contain the information of who is speaking.
+- NPC can trigger the webhook call of other npcs when talking to each other.
+- Context should not need to be sent to N8N as memory will be stored and processed there.
+
+
+## Technical Requirements
+
+### Configuration Constants (at top of code):
+```python
+AI_THINKING_INTERVAL = 30000  # 30 seconds in milliseconds 
+STARVATION_DAMAGE_INTERVAL = 1800000  # 30 game minutes in milliseconds
+GAME_DAY_DURATION = 3600000  # 60 real minutes in milliseconds
+```
+
+### Error Handling
+- NPC will state webhook to their N8N brain failed.
+- Retry mechanism for failed AI calls.
+
+### Performance Considerations
+- Limit simultaneous webhook calls
+- Cache building and NPC coordinates
+- Efficient pathfinding for NPC movement
+
+## UI Elements
+- Health bars above NPCs showing HP and energy levels
+- Time display showing current game time
+- Communication log window (expandable/collapsible)
+- Player status display
+- Clear building labels
+
+## Success Criteria
+The demo should showcase:
+1. **Autonomous AI behavior**: NPCs thinking and acting independently
+2. **Complex social interactions**: NPCs talking to each other, turning button and lever on and off as the situation requires.
+3. **Survival mechanics in the brain**: energy, health
+4. **Emergent gameplay**: Situations arising from AI decisions
+5. **Robust communication**: Player-NPC and NPC-NPC conversations
+6. **Acting in game as per the instructions queued by the N8N brain.
+
+In everything else please use your own judgement to make the game run smoothly and make it beautifull with a clean ui.
